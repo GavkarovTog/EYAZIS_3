@@ -1,5 +1,5 @@
 const natural = require("natural");
-const brain = require("brain.js");
+const tf = require('@tensorflow/tfjs');
 const { removeStopwords, eng, rus } = require("stopword");
 const { processFolder } = require("./utils/getTrainingData");
 const { saveToJSON } = require('./utils/saveToFile');
@@ -178,14 +178,12 @@ class SentenceExtraction {
 class MLReferator {
     constructor() {
         this.dictionary = [];
-        this.model = new brain.NeuralNetworkGPU({
-            hiddenLayers: [1000, 1000, 1000],
-            activation: "relu"
-        });
+        this.model = tf.sequential();
     }
 
-    train(documents) {
-        let trainData = [];
+    async train(documents) {
+        let trainX = [];
+        let trainY = [];
 
         let sentenceTokenizer = new natural.SentenceTokenizer();
 
@@ -284,6 +282,11 @@ class MLReferator {
 
         this.dictionary.sort();
 
+        this.model.add(tf.layers.dense({ inputShape: this.dictionary.length * 3 + 2, units: 32, activation: "linear" }));
+        this.model.add(tf.layers.dense({ units: 1, activation: "linear" }));``
+
+        this.model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
         for (let language in documents) {
             let tokenizer = null;
             let stopwordsLanguage = null;
@@ -343,26 +346,36 @@ class MLReferator {
                     neuralInput.push(tf_max);
                     neuralInput.push(documents[language].length);
 
-                    trainData.push(
-                        { input: neuralInput, output: [sentenceRating] }
+                    trainX.push(
+                        neuralInput
+                    );
+
+                    trainY.push(
+                        sentenceRating
                     );
                 }
             }
 
-            for (let value of trainData[0].input) {
-                console.log(value + " ");
-            }
+            // for (let value of trainData[0].input) {
+            //     console.log(value + " ");
+            // }
 
-            this.model.train(
-                trainData,
-                {
-                    iterations: 50000, // Количество итераций обучения
-                    errorThresh: 1e-9, // Порог ошибки
-                    log: true, // Выводить прогресс обучения
-                    logPeriod: 5,
-                }
-            );
+            
+
+            // this.model.train(
+            //     trainX,
+            //     {
+            //         iterations: 50000, // Количество итераций обучения
+            //         errorThresh: 1e-9, // Порог ошибки
+            //         log: true, // Выводить прогресс обучения
+            //         logPeriod: 5,
+            //     }
+            // );3
         }
+
+        const xs = tf.tensor2d(trainX);
+        const ys = tf.tensor2d(trainY, [trainY.length, 1]);
+        await this.model.fit(xs, ys, {epochs: 250});
     }
 
     referate(documents) {
@@ -446,7 +459,7 @@ class MLReferator {
 
             let counter = 0;
             for (let document of documents[language]) {
-                let tf = tfsByLanguage[language][counter];
+                let tttf = tfsByLanguage[language][counter];
                 let df = dfsByLanguage[language];
                 let tf_max = tfsMaxesByLanguage[language][counter];
 
@@ -473,7 +486,7 @@ class MLReferator {
 
                     // Then add tf
                     for (let stemmedWord of this.dictionary) {
-                        neuralInput.push(tf[stemmedWord] || 0);
+                        neuralInput.push(tttf[stemmedWord] || 0);
                     }
 
                     // Then df
@@ -486,7 +499,7 @@ class MLReferator {
 
                     ratings.push({
                         "position": i,
-                        "rating": this.model.run(neuralInput),
+                        "rating": this.model.predict(tf.tensor2d([neuralInput])),
                         "sentence": currentSentence
                     });
                 }
@@ -515,7 +528,7 @@ class MLReferator {
                     visited.push(processedWord);
 
                     let stemmedWord = stemmer.stem(word);
-                    let value = (tf[stemmedWord] || 0) * documents[language].length / (df[stemmedWord] || 1);
+                    let value = (tttf[stemmedWord] || 0) * documents[language].length / (df[stemmedWord] || 1);
 
                     if (value > 0 && processedWord.length > 2) {
                         keywords.push([processedWord, value]);
@@ -535,23 +548,32 @@ class MLReferator {
         }
     }
 
-    save(filename) {
-        saveToJSON(this.dictionary, "dictionary" + filename);
-        saveToJSON(this.model.toJSON(), filename);
+    async save(filename) {
+        await this.model.save("localstorage://./" + filename);
+        // saveToJSON(this.dictionary, "dictionary" + filename);
+        // saveToJSON(this.model.toJSON(), filename);
     }
 
-    load(filename) {
-        let loadedModel = loadFromJSON(filename);
-        let loadedDictionary = loadFromJSON("dictionary" + filename);
-
-        if (!loadedModel || !loadedDictionary) {
+    async load(filename) {
+        try {
+            this.model = await tf.loadLayersModel("localstorage://./" + filename);
+        } catch {
+            this.model = tf.sequential();
             return false;
         }
 
-        this.model.fromJSON(loadedModel);
-        this.dictionary = loadedDictionary;
-
         return true;
+        // let loadedModel = loadFromJSON(filename);
+        // let loadedDictionary = loadFromJSON("dictionary" + filename);
+
+        // if (!loadedModel || !loadedDictionary) {
+        //     return false;
+        // }
+
+        // this.model.fromJSON(loadedModel);
+        // this.dictionary = loadedDictionary;
+
+        // return true;
     }
 }
 
@@ -590,15 +612,20 @@ let groupByLanguage = (documents) => {
 }
 
 let getReferateNN = async (documents) => {
-    const modelFile = "nn_model.json";
+    const modelFile = "nn_model";
     let model = new MLReferator();
 
-    if (!model.load(modelFile)) {
-        const trainTextsFolder = "toTrain";
-        let trainTexts = await processFolder(trainTextsFolder);
-        model.train(groupByLanguage(trainTexts));
-        model.save(modelFile);
-    }
+    // if (!(await model.load(modelFile))) {
+    //     const trainTextsFolder = "toTrain";
+    //     let trainTexts = await processFolder(trainTextsFolder);
+    //     model.train(groupByLanguage(trainTexts));
+
+    //     await model.save(modelFile);
+    // }
+
+    const trainTextsFolder = "toTrain";
+    let trainTexts = await processFolder(trainTextsFolder);
+    await model.train(groupByLanguage(trainTexts));
 
     return model.referate(groupByLanguage(documents));
 }

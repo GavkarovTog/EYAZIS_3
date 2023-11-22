@@ -9,10 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tensorflow/tfjs": "^4.13.0",
     "brain.js": "^2.0.0-beta.23",
-    "detectlanguage": "^2.1.0",
-    "natural": "^6.8.0",
+    "detectlanguage": "^1.2.2",
+    "natural": "^6.8.1",
     "pdf-parse": "^1.1.1",
-    "stopword": "^2.0.8"
+    "stopword": "^2.0.8",
+    "tensorflow.js": "^0.0.1"
   }
 }
