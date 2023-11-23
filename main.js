@@ -1,11 +1,10 @@
 const natural = require("natural");
-const tf = require('@tensorflow/tfjs-node');
+const tf = require("@tensorflow/tfjs-node");
 const { removeStopwords, eng, rus } = require("stopword");
 const { processFolder } = require("./utils/getTrainingData");
-const { saveToJSON } = require('./utils/saveToFile');
-const { loadFromJSON } = require('./utils/loadToFile');
-const LanguageDetect = require('languagedetect');
-
+const { saveToJSON } = require("./utils/saveToFile");
+const { loadFromJSON } = require("./utils/loadToFile");
+const LanguageDetect = require("languagedetect");
 
 class Tokenizer {
     constructor(pattern) {
@@ -51,7 +50,7 @@ class SentenceExtraction {
                 stopwordsLanguage = rus;
                 stemmer = natural.PorterStemmer;
             } else {
-                tokenizer = new Tokenizer(/[a-zA-Z]+/g)
+                tokenizer = new Tokenizer(/[a-zA-Z]+/g);
                 stopwordsLanguage = eng;
                 stemmer = natural.PorterStemmerRu;
             }
@@ -61,7 +60,10 @@ class SentenceExtraction {
                 let tf = {};
 
                 let nonProcessedWords = tokenizer.tokenize(document);
-                let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                let words = removeStopwords(
+                    nonProcessedWords,
+                    stopwordsLanguage
+                );
                 // for (let word of words) {
                 //     console.log(word + " ");
                 // }
@@ -70,7 +72,7 @@ class SentenceExtraction {
                 for (let word of words) {
                     let stemmedWord = stemmer.stem(word);
 
-                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1
+                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1;
 
                     if (!dfCounted.includes(stemmedWord)) {
                         dfCounted.push(stemmedWord);
@@ -100,13 +102,17 @@ class SentenceExtraction {
                 for (let i = 0; i < sentences.length; i++) {
                     let currentSentence = sentences[i];
                     let nonProcessedWords = tokenizer.tokenize(currentSentence);
-                    let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                    let words = removeStopwords(
+                        nonProcessedWords,
+                        stopwordsLanguage
+                    );
 
                     let sentenceTf = {};
                     for (let word of words) {
                         let stemmedWord = stemmer.stem(word);
 
-                        sentenceTf[stemmedWord] = (sentenceTf[stemmedWord] || 0) + 1;
+                        sentenceTf[stemmedWord] =
+                            (sentenceTf[stemmedWord] || 0) + 1;
                     }
 
                     let sentenceRating = 0.0;
@@ -116,13 +122,20 @@ class SentenceExtraction {
                         // console.log(`tf: ${tf[stemmedWord]}`);
                         // console.log(`df: ${df[stemmedWord]}`);
                         // console.log(`tf_max: ${tf_max}`);
-                        sentenceRating += (sentenceTf[stemmedWord] || 0) * 0.5 * (1 + (tf[stemmedWord] || 0) / tf_max) * Math.log(documents[language].length / (df[stemmedWord] || 1));
+                        sentenceRating +=
+                            (sentenceTf[stemmedWord] || 0) *
+                            0.5 *
+                            (1 + (tf[stemmedWord] || 0) / tf_max) *
+                            Math.log(
+                                documents[language].length /
+                                    (df[stemmedWord] || 1)
+                            );
                     }
 
                     ratings.push({
-                        "position": i,
-                        "rating": sentenceRating,
-                        "sentence": currentSentence
+                        position: i,
+                        rating: sentenceRating,
+                        sentence: currentSentence,
                     });
                 }
 
@@ -138,7 +151,10 @@ class SentenceExtraction {
                 }
 
                 let nonProcessedWords = tokenizer.tokenize(referate);
-                let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                let words = removeStopwords(
+                    nonProcessedWords,
+                    stopwordsLanguage
+                );
 
                 let keywords = [];
                 let visited = [];
@@ -151,7 +167,9 @@ class SentenceExtraction {
                     visited.push(processedWord);
 
                     let stemmedWord = stemmer.stem(word);
-                    let value = (tf[stemmedWord] || 0) * documents[language].length / (df[stemmedWord] || 1);
+                    let value =
+                        ((tf[stemmedWord] || 0) * documents[language].length) /
+                        (df[stemmedWord] || 1);
 
                     if (value > 0 && processedWord.length > 2) {
                         keywords.push([processedWord, value]);
@@ -161,12 +179,11 @@ class SentenceExtraction {
                 keywords.sort((a, b) => b[1] - a[1]);
                 keywords = keywords.slice(0, 20);
 
-
                 referates.push({
-                    "referate": referate,
-                    "keywords": keywords.map((e) => e[0]),
-                    "document": document,
-                    "language": language
+                    referate: referate,
+                    keywords: keywords.map((e) => e[0]),
+                    document: document,
+                    language: language,
                 });
             }
 
@@ -206,24 +223,27 @@ class MLReferator {
                 stopwordsLanguage = rus;
                 stemmer = natural.PorterStemmer;
             } else {
-                tokenizer = new Tokenizer(/[a-zA-Z]+/g)
+                tokenizer = new Tokenizer(/[a-zA-Z]+/g);
                 stopwordsLanguage = eng;
                 stemmer = natural.PorterStemmerRu;
             }
 
-            let overallTf = {}
+            let overallTf = {};
             let df = {};
             for (let document of documents[language]) {
                 let tf = {};
 
                 let nonProcessedWords = tokenizer.tokenize(document);
-                let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                let words = removeStopwords(
+                    nonProcessedWords,
+                    stopwordsLanguage
+                );
 
                 let dfCounted = [];
                 for (let word of words) {
                     let stemmedWord = stemmer.stem(word);
 
-                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1
+                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1;
                     overallTf[stemmedWord] = (overallTf[stemmedWord] || 0) + 1;
 
                     if (!dfCounted.includes(stemmedWord)) {
@@ -266,7 +286,9 @@ class MLReferator {
             let countOfWords = 0;
             for (let word in overallTf) {
                 let stemmedWord = stemmer.stem(word);
-                wordsWeight[stemmedWord] = overallTf[stemmedWord] * documents[language].length / df[stemmedWord];
+                wordsWeight[stemmedWord] =
+                    (overallTf[stemmedWord] * documents[language].length) /
+                    df[stemmedWord];
                 average += wordsWeight[stemmedWord];
                 countOfWords++;
             }
@@ -282,10 +304,17 @@ class MLReferator {
 
         this.dictionary.sort();
 
-        this.model.add(tf.layers.dense({ inputShape: this.dictionary.length * 3 + 2, units: 32, activation: "linear" }));
-        this.model.add(tf.layers.dense({ units: 1, activation: "linear" }));``
+        this.model.add(
+            tf.layers.dense({
+                inputShape: this.dictionary.length * 3 + 2,
+                units: 32,
+                activation: "linear",
+            })
+        );
+        this.model.add(tf.layers.dense({ units: 1, activation: "linear" }));
+        ``;
 
-        this.model.compile({loss: 'meanSquaredError', optimizer: 'adam'});
+        this.model.compile({ loss: "meanSquaredError", optimizer: "adam" });
 
         for (let language in documents) {
             let tokenizer = null;
@@ -297,7 +326,7 @@ class MLReferator {
                 stopwordsLanguage = rus;
                 stemmer = natural.PorterStemmer;
             } else {
-                tokenizer = new Tokenizer(/[a-zA-Z]+/g)
+                tokenizer = new Tokenizer(/[a-zA-Z]+/g);
                 stopwordsLanguage = eng;
                 stemmer = natural.PorterStemmerRu;
             }
@@ -312,19 +341,30 @@ class MLReferator {
                 for (let i = 0; i < sentences.length; i++) {
                     let currentSentence = sentences[i];
                     let nonProcessedWords = tokenizer.tokenize(currentSentence);
-                    let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                    let words = removeStopwords(
+                        nonProcessedWords,
+                        stopwordsLanguage
+                    );
 
                     let sentenceTf = {};
                     for (let word of words) {
                         let stemmedWord = stemmer.stem(word);
 
-                        sentenceTf[stemmedWord] = (sentenceTf[stemmedWord] || 0) + 1;
+                        sentenceTf[stemmedWord] =
+                            (sentenceTf[stemmedWord] || 0) + 1;
                     }
 
                     let sentenceRating = 0.0;
                     for (let word in sentenceTf) {
                         let stemmedWord = stemmer.stem(word);
-                        sentenceRating += (sentenceTf[stemmedWord] || 0) * 0.5 * (1 + (tf[stemmedWord] || 0) / tf_max) * Math.log(documents[language].length / (df[stemmedWord] || 1));
+                        sentenceRating +=
+                            (sentenceTf[stemmedWord] || 0) *
+                            0.5 *
+                            (1 + (tf[stemmedWord] || 0) / tf_max) *
+                            Math.log(
+                                documents[language].length /
+                                    (df[stemmedWord] || 1)
+                            );
                     }
 
                     let neuralInput = [];
@@ -346,21 +386,15 @@ class MLReferator {
                     neuralInput.push(tf_max);
                     neuralInput.push(documents[language].length);
 
-                    trainX.push(
-                        neuralInput
-                    );
+                    trainX.push(neuralInput);
 
-                    trainY.push(
-                        sentenceRating
-                    );
+                    trainY.push(sentenceRating);
                 }
             }
 
             // for (let value of trainData[0].input) {
             //     console.log(value + " ");
             // }
-
-            
 
             // this.model.train(
             //     trainX,
@@ -375,7 +409,7 @@ class MLReferator {
 
         const xs = tf.tensor2d(trainX);
         const ys = tf.tensor2d(trainY, [trainY.length, 1]);
-        await this.model.fit(xs, ys, {epochs: 100});
+        await this.model.fit(xs, ys, { epochs: 100 });
     }
 
     referate(documents) {
@@ -400,7 +434,7 @@ class MLReferator {
                 stopwordsLanguage = rus;
                 stemmer = natural.PorterStemmer;
             } else {
-                tokenizer = new Tokenizer(/[a-zA-Z]+/g)
+                tokenizer = new Tokenizer(/[a-zA-Z]+/g);
                 stopwordsLanguage = eng;
                 stemmer = natural.PorterStemmerRu;
             }
@@ -410,13 +444,16 @@ class MLReferator {
                 let tf = {};
 
                 let nonProcessedWords = tokenizer.tokenize(document);
-                let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                let words = removeStopwords(
+                    nonProcessedWords,
+                    stopwordsLanguage
+                );
 
                 let dfCounted = [];
                 for (let word of words) {
                     let stemmedWord = stemmer.stem(word);
 
-                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1
+                    tf[stemmedWord] = (tf[stemmedWord] || 0) + 1;
 
                     if (!dfCounted.includes(stemmedWord)) {
                         dfCounted.push(stemmedWord);
@@ -452,7 +489,7 @@ class MLReferator {
                 stopwordsLanguage = rus;
                 stemmer = natural.PorterStemmer;
             } else {
-                tokenizer = new Tokenizer(/[a-zA-Z]+/g)
+                tokenizer = new Tokenizer(/[a-zA-Z]+/g);
                 stopwordsLanguage = eng;
                 stemmer = natural.PorterStemmerRu;
             }
@@ -469,13 +506,17 @@ class MLReferator {
                 for (let i = 0; i < sentences.length; i++) {
                     let currentSentence = sentences[i];
                     let nonProcessedWords = tokenizer.tokenize(currentSentence);
-                    let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                    let words = removeStopwords(
+                        nonProcessedWords,
+                        stopwordsLanguage
+                    );
 
                     let sentenceTf = {};
                     for (let word of words) {
                         let stemmedWord = stemmer.stem(word);
 
-                        sentenceTf[stemmedWord] = (sentenceTf[stemmedWord] || 0) + 1;
+                        sentenceTf[stemmedWord] =
+                            (sentenceTf[stemmedWord] || 0) + 1;
                     }
 
                     let neuralInput = [];
@@ -498,9 +539,16 @@ class MLReferator {
                     neuralInput.push(documents[language].length);
 
                     ratings.push({
-                        "position": i,
-                        "rating": this.model.predict(tf.tensor2d(neuralInput, [1, neuralInput.length])).dataSync()[0],
-                        "sentence": currentSentence
+                        position: i,
+                        rating: this.model
+                            .predict(
+                                tf.tensor2d(neuralInput, [
+                                    1,
+                                    neuralInput.length,
+                                ])
+                            )
+                            .dataSync()[0],
+                        sentence: currentSentence,
                     });
                 }
 
@@ -515,7 +563,10 @@ class MLReferator {
                 }
 
                 let nonProcessedWords = tokenizer.tokenize(referate);
-                let words = removeStopwords(nonProcessedWords, stopwordsLanguage);
+                let words = removeStopwords(
+                    nonProcessedWords,
+                    stopwordsLanguage
+                );
 
                 let keywords = [];
                 let visited = [];
@@ -528,7 +579,10 @@ class MLReferator {
                     visited.push(processedWord);
 
                     let stemmedWord = stemmer.stem(word);
-                    let value = (tttf[stemmedWord] || 0) * documents[language].length / (df[stemmedWord] || 1);
+                    let value =
+                        ((tttf[stemmedWord] || 0) *
+                            documents[language].length) /
+                        (df[stemmedWord] || 1);
 
                     if (value > 0 && processedWord.length > 2) {
                         keywords.push([processedWord, value]);
@@ -539,17 +593,17 @@ class MLReferator {
                 keywords = keywords.slice(0, 20);
 
                 referates.push({
-                    "referate": referate,
-                    "keywords": keywords.map((e) => e[0]),
-                    "document": document,
-                    "language": language
+                    referate: referate,
+                    keywords: keywords.map((e) => e[0]),
+                    document: document,
+                    language: language,
                 });
 
-                counter ++;
+                counter++;
             }
         }
 
-        return referates
+        return referates;
     }
 
     async save(filename) {
@@ -560,7 +614,9 @@ class MLReferator {
 
     async load(filename) {
         try {
-            this.model = await tf.loadLayersModel("file://./" + filename + "/model.json");
+            this.model = await tf.loadLayersModel(
+                "file://./" + filename + "/model.json"
+            );
         } catch {
             this.model = tf.sequential();
             this.dictionary = [];
@@ -569,8 +625,7 @@ class MLReferator {
 
         let loadedDictionary = loadFromJSON("dictionary" + filename);
 
-
-        if (! loadedDictionary) {
+        if (!loadedDictionary) {
             return false;
         }
 
@@ -601,10 +656,10 @@ let groupByLanguage = (documents) => {
         let english = null;
         let russian = null;
         for (let infoEntry of detectionInfo) {
-            if (infoEntry[0] == 'english') {
+            if (infoEntry[0] == "english") {
                 english = infoEntry[1];
-            } else if (infoEntry[0] == 'russian') {
-                russian = infoEntry[1]
+            } else if (infoEntry[0] == "russian") {
+                russian = infoEntry[1];
             }
         }
 
@@ -613,16 +668,18 @@ let groupByLanguage = (documents) => {
         } else if (english == null) {
             language = "ru";
         } else if (english >= russian) {
-            language = 'eng';
+            language = "eng";
         } else {
-            language = 'ru';
+            language = "ru";
         }
 
-        textsByLanguage[language] = (textsByLanguage[language] || []).concat([text]);
+        textsByLanguage[language] = (textsByLanguage[language] || []).concat([
+            text,
+        ]);
     }
 
     return textsByLanguage;
-}
+};
 
 let getReferateNN = async (documents) => {
     const modelFile = "nn_model";
@@ -641,18 +698,20 @@ let getReferateNN = async (documents) => {
     // await model.train(groupByLanguage(trainTexts));
 
     return model.referate(groupByLanguage(documents));
-}
+};
 
 let getReferateSE = (documents) => {
     let sentenceExtraction = new SentenceExtraction();
     return sentenceExtraction.referate(groupByLanguage(documents));
-}
+};
 
-let main = async () => {
-    const trainTextsFolder = "toTrain";
-    let textsToReferate = await processFolder(trainTextsFolder);
+// let main = async () => {
+//     const trainTextsFolder = "toTrain";
+//     let textsToReferate = await processFolder(trainTextsFolder);
 
-    console.log(await getReferateNN(textsToReferate));
-}
+//     console.log(await getReferateNN(textsToReferate));
+// };
 
-main();
+// main();
+
+module.exports = {getReferateNN, getReferateSE};
